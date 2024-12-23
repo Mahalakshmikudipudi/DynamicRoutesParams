@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Manager</title>
+    <style>
+        #productList {
+            margin: 20px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+        .product {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+        }
+        .product button {
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Product Manager</h1>
+    <form id="productForm">
+        <input type="text" id="productName" placeholder="Product Name" required>
+        <input type="number" id="productPrice" placeholder="Product Price" required>
+        <button type="submit">Add Product</button>
+    </form>
+
+    <div id="productList"></div>
+
+    <script>
+        const productListDiv = document.getElementById('productList');
+        const productForm = document.getElementById('productForm');
+        const productNameInput = document.getElementById('productName');
+        const productPriceInput = document.getElementById('productPrice');
+
+        // Fetch and display all products on page load
+        fetch('/products')
+            .then(response => response.json())
+            .then(products => {
+                products.forEach(displayProduct);
+            });
+
+        // Handle form submission
+        productForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+
+            const newProduct = {
+                name: productNameInput.value,
+                price: productPriceInput.value,
+            };
+
+            fetch('/products', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newProduct),
+            })
+                .then(response => {
+                    if (response.ok) {
+                        response.json().then(product => {
+                            displayProduct(product);
+                            productNameInput.value = '';
+                            productPriceInput.value = '';
+                        });
+                    } else {
+                        alert('Error adding product');
+                    }
+                });
+        });
+
+        // Display a product with Delete and Edit buttons
+        function displayProduct(product) {
+            const productDiv = document.createElement('div');
+            productDiv.classList.add('product');
+            productDiv.innerHTML = `
+                <span><strong>${product.name}</strong> - $${product.price}</span>
+                <span>
+                    <button onclick="deleteProduct('${product.id}')">Delete</button>
+                    <button onclick="editProduct('${product.id}')">Edit</button>
+                </span>
+            `;
+            productListDiv.appendChild(productDiv);
+        }
+
+        // Delete a product
+        function deleteProduct(productId) {
+            fetch(`/delete/${productId}`, { method: 'DELETE' })
+                .then(response => {
+                    if (response.ok) {
+                        productListDiv.innerHTML = ''; // Clear and reload
+                        fetch('/products')
+                            .then(response => response.json())
+                            .then(products => products.forEach(displayProduct));
+                    } else {
+                        alert('Error deleting product');
+                    }
+                });
+        }
+
+        // Navigate to the edit product page
+        function editProduct(productId) {
+            window.location.href = `/edit.html?id=${productId}`;
+        }
+    </script>
+</body>
+</html>
